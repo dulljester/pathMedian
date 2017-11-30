@@ -57,5 +57,9 @@ if __name__ == '__main__':
             qr = f(10000,100000)
             print qr
             for k in range(qr):
-                print f(0,n-1),f(0,n-1)
+                while True:
+                    i,j = f(0,n-1),f(0,n-1)
+                    if i != j:
+                        break
+                print i,j
 
