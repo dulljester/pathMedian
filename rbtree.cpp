@@ -18,12 +18,17 @@
 #define MAXE (N<<1)
 #define oo (1<<30)
 #define NONE (-1)
+#include <map>
 enum { RED, BLACK };
 enum { L, R };
 using namespace std;
+#define USE_STL 0
 
 class RBtree {
 private:
+#if USE_STL
+	map<int,int> s;
+#endif
 	typedef struct cell {
 		struct cell *son[2],*p;
 		char c;
@@ -33,9 +38,12 @@ private:
 #define color(x) ((x)->c)
 #define which_son(x) ((x)->p->son[L]==x?L:R)
 	int n;
-	cell pool[N],*ptr,*root,*NIL;
+#if USE_STL
+	int m;
+#endif
+	cell *root,*NIL;
 	cell *init_cell() {
-		cell *x=ptr++;
+		cell *x = (cell *)malloc(sizeof *x);
 		x->son[L]=x->son[R]=x->p=NIL,x->weight=+oo,x->freq=x->card=0,x->c=RED;
 		return x;
 	}
@@ -80,13 +88,14 @@ private:
 	}
 	int kth_weight( cell *x, int k ) const {
 		if ( x->son[L] == NIL && x->son[R] == NIL ) {
-			printf("This %d %d\n",x->freq,k);
 			assert( x->freq > k );
 			return x->weight;
 		}
 		if ( x->son[L]->card > k )
 			return kth_weight(x->son[L],k);
-		return kth_weight(x->son[R],k-x->son[L]->card);
+		if ( x->son[L]->card+x->freq <= k )
+			return kth_weight(x->son[R],k-x->son[L]->card-x->freq);
+		return x->weight;
 	}
 	cell *find( const int item ) const {
 		cell *x;
@@ -99,7 +108,8 @@ private:
 	void erase( cell *z ) {
 		cell *x,*y;
 		int i;
-		if ( !z || z == NIL ) return ;
+		//if ( !z || z == NIL ) return ;
+		assert( z && z != NULL );
 		--n;
 		if ( --z->freq ) {
 			update_upwards(z);
@@ -118,7 +128,7 @@ private:
 		if ( (x->p = y->p) == NIL )
 			root = x;
 		else y->p->son[which_son(y)] = x;
-		update_upwards(y->p==NIL?root:y->p);
+		update_upwards(y->p);
 		if ( color(y) == BLACK )
 			fixup(x);
 		assert( size() == root->card );
@@ -126,11 +136,37 @@ private:
 public:
 	int inline size() const { return n; }
 	void init() {
-		n = 0, ptr = pool, NIL = init_cell();
+#if USE_STL
+		m = 0, s.clear();
+#else
+		n = 0, NIL = init_cell();
 		NIL->p=NIL->son[L]=NIL->son[R]=NIL,NIL->c=BLACK,root=NIL;
+#endif
 	}
-	int kth_weight( int k ) const { return root->card>k?kth_weight(root,k):+oo; }
+	int kth_weight( int k ) const {
+#if USE_STL
+		int ax = 0;
+		for ( map<int,int> :: const_iterator it = s.begin(); it != s.end(); ++it ) {
+			assert( it->second > 0 ) ;
+			if ( it->second+ax <= k ) {
+				ax += it->second;
+				continue ;
+			}
+			assert( ax <= k && ax+it->second > k );
+			return it->first;
+		}
+		assert(0);
+#else
+		return root->card>k?kth_weight(root,k):+oo; 
+#endif
+	}
 	void push( const int entry ) {
+#if USE_STL
+		if ( s.count(entry) )
+			++s[entry];
+		else s[entry] = 1;
+		++m;
+#else
 		cell *x,*y,**hold,*z,*g;
 		int i;
 		for ( ++n, hold=&root, y=(x=root)->p;;) {
@@ -161,11 +197,27 @@ public:
 			flip(x->p), flip(g), rotate(g,i^1);
 		}
 		root->c = BLACK;
+		if ( size() != root->card )
+			printf("This %d %d\n",size(),root->card);
 		assert( size() == root->card );
+#endif
 	}
 	RBtree() { init(); }
-	void erase( const int w ) { erase(find(w)); }
-	int get_median() const { return kth_weight(root->card>>1); }
+	void erase( const int w ) { 
+#if USE_STL
+		if ( !--s[w] ) s.erase(w);
+		--m;
+#else
+		erase(find(w));
+#endif
+	}
+	int get_median() const {
+#if USE_STL
+		return kth_weight(m>>1);
+#else
+		return kth_weight(root->card>>1);
+#endif
+	}
 } T;
 
 class Sequence {
@@ -270,7 +322,7 @@ vector<st_query> queries;
 char vcnt[N];
 
 int main() {
-	int i,j,k,qr,t,left,right,x,y,nleft,nright;
+	int i,j,k,qr,t,left,right,x,y,nleft,nright,lca;
 	double ax = 0;
 	for ( ;G.read_graph(); ) {
 		G.preprocess(s);
@@ -296,15 +348,28 @@ int main() {
 		}
 		sort(queries.begin(),queries.end());
 		for ( T.init(), i = 0; i < G.size(); vcnt[i++] = 0 ) ;
+		/*
 		for ( left = queries[0].left, right = queries[0].right, i = left; i <= right; ++i )
 			if ( 1 == ++vcnt[x = s[i]] )
 				T.push(G[x]);
 			else if ( vcnt[x] == 2 )
 				T.erase(G[x]);
-		if ( queries[0].lca != s[left] && queries[0].lca != s[right] )
-			T.push(G[queries[0].lca]);
-		printf("Here %d %d %d\n",left,right,T.size());
-		for ( queries[0].ans = T.get_median(), t = 1; t < (int)queries.size(); queries[t++].ans = T.get_median(), left = nleft, right = nright ) {
+		if ( (lca = queries[0].lca) != s[left] && queries[0].lca != s[right] ) {
+			if ( ++vcnt[lca] == 1 )
+				T.push(G[lca]);
+			else if ( vcnt[lca] == 2 )
+				T.erase(G[lca]);
+		}
+		queries[0].ans = T.get_median();
+		if ( (lca = queries[0].lca) != s[left] && queries[0].lca != s[right] ) {
+			if ( ++vcnt[lca] == 1 )
+				T.push(G[lca]);
+			else if ( vcnt[lca] == 2 )
+				T.erase(G[lca]);
+		}
+		*/
+		left = queries[0].left, right = queries[0].left-1;
+		for ( t = 0; t < (int)queries.size(); left = nleft, right = nright, ++t ) {
 			nleft = queries[t].left, nright = queries[t].right;
 			for (;left < nleft; ) {
 				if ( !--vcnt[x = s[left++]] )
@@ -330,8 +395,24 @@ int main() {
 				else if ( 2 == vcnt[x] )
 					T.erase(G[x]);
 			}
-			if ( queries[t].lca != s[left] && queries[t].lca != s[right] )
-				T.push(G[queries[t].lca]);
+			if ( (lca = queries[t].lca) != s[left] && queries[t].lca != s[right] ) {
+				assert( !vcnt[lca] );
+				T.push(G[lca]);
+				/*if ( ++vcnt[lca] == 1 )
+					T.push(G[lca]);
+				else if ( vcnt[lca] == 2 )
+					T.erase(G[lca]);*/
+			}
+			queries[t].ans = T.get_median();
+			if ( (lca = queries[t].lca) != s[left] && queries[t].lca != s[right] ) {
+				assert( !vcnt[lca] );
+				T.erase(G[lca]);
+				/*
+				if ( ++vcnt[lca] == 1 )
+					T.push(G[lca]);
+				else if ( vcnt[lca] == 2 )
+					T.erase(G[lca]);*/
+			}
 		}
 		sort(queries.begin(),queries.end(),comparator());
 		for ( i = 0; i < (int)queries.size(); printf("%d\n",queries[i++].ans) ) ;

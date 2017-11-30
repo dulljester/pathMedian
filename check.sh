@@ -3,7 +3,9 @@ g++ -std=c++11 -o b bruteforce.cpp
 g++ -std=c++11 -o redblack rbtree.cpp
 ./a < input.txt > outa.txt
 ./b < input.txt > outb.txt
-./redblack < input.txt > outc.txt
 diff outa.txt outb.txt
+echo "A and B"
+./redblack < input.txt > outc.txt
 diff outa.txt outc.txt
+echo "A and C"
 # diff outa.txt outb.txt
