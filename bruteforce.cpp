@@ -86,12 +86,12 @@ int main() {
 	double ax = 0;
 	for ( ;read_preprocess(); ) {
 		auto start = std::chrono::high_resolution_clock::now();
-		for ( scanf("%d",&qr); qr-- && 2 == scanf("%d %d",&i,&j); printf("%d %d -> %d\n",i,j,query(i,j)) ) ;
+		for ( scanf("%d",&qr); qr-- && 2 == scanf("%d %d",&i,&j); printf("%d\n",query(i,j)) ) ;
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
 		ax += elapsed.count();
 	}
-	printf("%lf\n",ax);
+	//printf("%lf\n",ax);
 	return 0;
 }
 

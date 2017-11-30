@@ -12,6 +12,7 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <chrono>
 #define MAXLOG (21)
 #define N (1<<MAXLOG)
 #define MAXE (N<<1)
@@ -31,10 +32,11 @@ private:
 #define flip(x) ((x)->c ^= 1)
 #define color(x) ((x)->c)
 #define which_son(x) ((x)->p->son[L]==x?L:R)
+	int n;
 	cell pool[N],*ptr,*root,*NIL;
 	cell *init_cell() {
-		cell *x = ptr++;
-		x->son[L] = x->son[R] = x->p = NIL, x->weight = x->freq = x->card = 0, x->c = RED;
+		cell *x=ptr++;
+		x->son[L]=x->son[R]=x->p=NIL,x->weight=+oo,x->freq=x->card=0,x->c=RED;
 		return x;
 	}
 	void update_upwards( cell *x ) {
@@ -61,8 +63,8 @@ private:
 				continue ;
 			}
 			if ( color(y->son[i^1]) == RED ) {
-				y->c=x->p->c,x->p->c=BLACK, rotate(x->p,i), x = root;
-				break ;
+				y->c=x->p->c,x->p->c=BLACK,flip(y->son[i^1]), rotate(x->p,i), x = root;
+				continue ;
 			}
 			if ( color(y->son[i]) == RED ) {
 				flip(y->son[i]), flip(y), rotate(y,i^1);
@@ -70,16 +72,19 @@ private:
 			}
 			if ( color(x->p) == RED ) {
 				flip(y), flip(x->p), x = root;
-				break ;
+				continue ;
 			}
 			flip(y), x = x->p;
 		}
-		x->c=BLACK;
+		x->c = BLACK;
 	}
 	int kth_weight( cell *x, int k ) const {
-		if ( x->son[L] == NIL && x->son[R] == NIL )
+		if ( x->son[L] == NIL && x->son[R] == NIL ) {
+			printf("This %d %d\n",x->freq,k);
+			assert( x->freq > k );
 			return x->weight;
-		if ( x->son[L] != NIL && x->son[L]->card > k )
+		}
+		if ( x->son[L]->card > k )
 			return kth_weight(x->son[L],k);
 		return kth_weight(x->son[R],k-x->son[L]->card);
 	}
@@ -95,6 +100,7 @@ private:
 		cell *x,*y;
 		int i;
 		if ( !z || z == NIL ) return ;
+		--n;
 		if ( --z->freq ) {
 			update_upwards(z);
 			return ;
@@ -112,22 +118,22 @@ private:
 		if ( (x->p = y->p) == NIL )
 			root = x;
 		else y->p->son[which_son(y)] = x;
-		update_upwards(x);
+		update_upwards(y->p==NIL?root:y->p);
 		if ( color(y) == BLACK )
 			fixup(x);
+		assert( size() == root->card );
 	}
 public:
+	int inline size() const { return n; }
 	void init() {
-		ptr = pool, NIL = init_cell();
-		NIL->p=NIL->son[L]=NIL->son[R]=NIL,NIL->c=BLACK, root = NIL;
+		n = 0, ptr = pool, NIL = init_cell();
+		NIL->p=NIL->son[L]=NIL->son[R]=NIL,NIL->c=BLACK,root=NIL;
 	}
-	int kth_weight( int k ) const {
-		return root->card > k ? kth_weight(root,k) : +oo;
-	}
+	int kth_weight( int k ) const { return root->card>k?kth_weight(root,k):+oo; }
 	void push( const int entry ) {
 		cell *x,*y,**hold,*z,*g;
 		int i;
-		for ( hold=&root, y=(x=root)->p;;) {
+		for ( ++n, hold=&root, y=(x=root)->p;;) {
 			if ( x == NIL ) {
 				*hold = x = init_cell();
 				x->p = y, x->freq = 1, x->weight = entry;
@@ -135,8 +141,8 @@ public:
 				break ;
 			}
 			if ( x->weight == entry ) {
-				update_upwards(x);
-				break ;
+				++x->freq, update_upwards(x);
+				return ;
 			}
 			if ( x->weight < entry )
 				y = x, hold = &x->son[R], x = x->son[R];
@@ -155,6 +161,7 @@ public:
 			flip(x->p), flip(g), rotate(g,i^1);
 		}
 		root->c = BLACK;
+		assert( size() == root->card );
 	}
 	RBtree() { init(); }
 	void erase( const int w ) { erase(find(w)); }
@@ -164,13 +171,13 @@ public:
 class Sequence {
 private:
 	int first[N], last[N], m, c[N];
+	int inline int_at( int idx ) const { return c[idx]; }
 public:
 	void init() { m = 0; }
 	void inline add_first( int x ) { first[x] = m, c[m++] = x; }
 	void inline add_last( int x ) { last[x] = m, c[m++] = x; }
 	int inline get_first( int x ) const { return first[x]; }
 	int inline get_last( int x ) const { return last[x]; }
-	int inline int_at( int idx ) const { return c[idx]; }
 	int inline size() const { return m; }
 	int operator[] ( const int i ) const { return int_at(i); }
 } s;
@@ -264,8 +271,10 @@ char vcnt[N];
 
 int main() {
 	int i,j,k,qr,t,left,right,x,y,nleft,nright;
+	double ax = 0;
 	for ( ;G.read_graph(); ) {
 		G.preprocess(s);
+		auto start = std::chrono::high_resolution_clock::now();
 		for ( B = 1; B <= s.size()/B; ++B ) ;
 		for ( t = 0, queries.clear(), scanf("%d",&qr); qr-- && 2 == scanf("%d %d",&i,&j); ++t ) {
 			assert( i != j );
@@ -292,18 +301,19 @@ int main() {
 				T.push(G[x]);
 			else if ( vcnt[x] == 2 )
 				T.erase(G[x]);
-		if ( queries[0].lca != s.int_at(left) && queries[0].lca != s.int_at(right) )
+		if ( queries[0].lca != s[left] && queries[0].lca != s[right] )
 			T.push(G[queries[0].lca]);
+		printf("Here %d %d %d\n",left,right,T.size());
 		for ( queries[0].ans = T.get_median(), t = 1; t < (int)queries.size(); queries[t++].ans = T.get_median(), left = nleft, right = nright ) {
 			nleft = queries[t].left, nright = queries[t].right;
-			for (;left < nleft; ++left ) {
-				if ( !--vcnt[x = s[left]] )
+			for (;left < nleft; ) {
+				if ( !--vcnt[x = s[left++]] )
 					T.erase(G[x]);
 				else if ( vcnt[x] == 1 )
 					T.push(G[x]);
 			}
-			for ( ;right > nright; --right ) {
-				if ( !--vcnt[x = s[right]] )
+			for ( ;right > nright; ) {
+				if ( !--vcnt[x = s[right--]] )
 					T.erase(G[x]);
 				else if ( vcnt[x] == 1 )
 					T.push(G[x]);
@@ -325,7 +335,11 @@ int main() {
 		}
 		sort(queries.begin(),queries.end(),comparator());
 		for ( i = 0; i < (int)queries.size(); printf("%d\n",queries[i++].ans) ) ;
+		auto finish = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = finish - start;
+		ax += elapsed.count();
 	}
+	//printf("%lf\n",ax);
 	return 0;
 }
 
