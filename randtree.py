@@ -22,12 +22,14 @@ def link(x,y):
             rank[y] = rank[y]+1
 
 if __name__ == '__main__':
-    ts = 7
+    ts = 32
+    n = 1000000
     for t in range(ts):
         parent,rank = {},{}
-        n = f(1000,1000000)
+        n = n+f(5000,10000)
+        # n = f(50,80)
         # n = f(5,7)
-        C = f(1,1000)
+        C = f(n,2*n)
         print n,C
         for i in range(n):
             print f(1,C),
@@ -48,13 +50,13 @@ if __name__ == '__main__':
         if k != n-1:
             x = 1/0
         if n <= 100:
-            qr = n*(n+1)/2
+            qr = n*(n-1)/2
             print qr
             for i in range(n):
-                for j in range(i,n):
+                for j in range(i+1,n):
                     print i,j
         else:
-            qr = f(10000,100000)
+            qr = f(1000,7000)
             print qr
             for k in range(qr):
                 while True:
@@ -62,4 +64,3 @@ if __name__ == '__main__':
                     if i != j:
                         break
                 print i,j
-

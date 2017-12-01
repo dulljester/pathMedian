@@ -60,7 +60,10 @@ private:
 			x->p->son[which_son(x)] = y;
 		else root = y;
 		x->p = y, update_upwards(x);
-	}	
+	}
+	void destroy( cell *x ) {
+		if ( x != NIL ) destroy(x->son[L]), destroy(x->son[R]), free(x);
+	}
 	void fixup( cell *x ) {
 		int i;
 		cell *y,*p;
@@ -131,6 +134,7 @@ private:
 		update_upwards(y->p);
 		if ( color(y) == BLACK )
 			fixup(x);
+		free(y);
 		assert( size() == root->card );
 	}
 public:
@@ -203,6 +207,7 @@ public:
 #endif
 	}
 	RBtree() { init(); }
+	~RBtree() { destroy(root); }
 	void erase( const int w ) { 
 #if USE_STL
 		if ( !--s[w] ) s.erase(w);
@@ -218,7 +223,7 @@ public:
 		return kth_weight(root->card>>1);
 #endif
 	}
-} T;
+} *T;
 
 class Sequence {
 private:
@@ -260,6 +265,7 @@ private:
 	}
 	int inline get_weight( int x ) const { return weight[x]; }
 public:
+	inline int get_sigma() const { return sigma; }
 	int operator [] ( const int x ) const { return get_weight(x); }
 	bool read_graph() {
 		int i,j,k;
@@ -321,14 +327,15 @@ struct comparator {
 vector<st_query> queries;
 char vcnt[N];
 
-int main() {
-	int i,j,k,qr,t,left,right,x,y,nleft,nright,lca;
+int main( int argc, char **argv ) {
+	int oqr,i,j,k,qr,t,left,right,x,y,nleft,nright,lca;
 	double ax = 0;
+	FILE *fp = fopen(argv[1],"w");
 	for ( ;G.read_graph(); ) {
 		G.preprocess(s);
 		auto start = std::chrono::high_resolution_clock::now();
 		for ( B = 1; B <= s.size()/B; ++B ) ;
-		for ( t = 0, queries.clear(), scanf("%d",&qr); qr-- && 2 == scanf("%d %d",&i,&j); ++t ) {
+		for ( t = 0, queries.clear(), scanf("%d",&qr), oqr = qr; qr-- && 2 == scanf("%d %d",&i,&j); ++t ) {
 			assert( i != j );
 			k = G.lca(i,j);
 			if ( k != i && k != j ) {
@@ -347,66 +354,46 @@ int main() {
 			queries.push_back(st_query(s.get_first(j),s.get_first(i),k,t));
 		}
 		sort(queries.begin(),queries.end());
-		for ( T.init(), i = 0; i < G.size(); vcnt[i++] = 0 ) ;
-		/*
-		for ( left = queries[0].left, right = queries[0].right, i = left; i <= right; ++i )
-			if ( 1 == ++vcnt[x = s[i]] )
-				T.push(G[x]);
-			else if ( vcnt[x] == 2 )
-				T.erase(G[x]);
-		if ( (lca = queries[0].lca) != s[left] && queries[0].lca != s[right] ) {
-			if ( ++vcnt[lca] == 1 )
-				T.push(G[lca]);
-			else if ( vcnt[lca] == 2 )
-				T.erase(G[lca]);
-		}
-		queries[0].ans = T.get_median();
-		if ( (lca = queries[0].lca) != s[left] && queries[0].lca != s[right] ) {
-			if ( ++vcnt[lca] == 1 )
-				T.push(G[lca]);
-			else if ( vcnt[lca] == 2 )
-				T.erase(G[lca]);
-		}
-		*/
+		for ( T = new RBtree(), i = 0; i < G.size(); vcnt[i++] = 0 ) ;
 		left = queries[0].left, right = queries[0].left-1;
 		for ( t = 0; t < (int)queries.size(); left = nleft, right = nright, ++t ) {
 			nleft = queries[t].left, nright = queries[t].right;
 			for (;left < nleft; ) {
 				if ( !--vcnt[x = s[left++]] )
-					T.erase(G[x]);
+					T->erase(G[x]);
 				else if ( vcnt[x] == 1 )
-					T.push(G[x]);
+					T->push(G[x]);
 			}
 			for ( ;right > nright; ) {
 				if ( !--vcnt[x = s[right--]] )
-					T.erase(G[x]);
+					T->erase(G[x]);
 				else if ( vcnt[x] == 1 )
-					T.push(G[x]);
+					T->push(G[x]);
 			}
 			for ( ;left > nleft; ) {
 				if ( 1 == ++vcnt[x = s[--left]] )
-					T.push(G[x]);
+					T->push(G[x]);
 				else if ( 2 == vcnt[x] )
-					T.erase(G[x]);
+					T->erase(G[x]);
 			}
 			for ( ;right < nright; ) {
 				if ( 1 == ++vcnt[x = s[++right]] )
-					T.push(G[x]);
+					T->push(G[x]);
 				else if ( 2 == vcnt[x] )
-					T.erase(G[x]);
+					T->erase(G[x]);
 			}
 			if ( (lca = queries[t].lca) != s[left] && queries[t].lca != s[right] ) {
 				assert( !vcnt[lca] );
-				T.push(G[lca]);
+				T->push(G[lca]);
 				/*if ( ++vcnt[lca] == 1 )
 					T.push(G[lca]);
 				else if ( vcnt[lca] == 2 )
 					T.erase(G[lca]);*/
 			}
-			queries[t].ans = T.get_median();
+			queries[t].ans = T->get_median();
 			if ( (lca = queries[t].lca) != s[left] && queries[t].lca != s[right] ) {
 				assert( !vcnt[lca] );
-				T.erase(G[lca]);
+				T->erase(G[lca]);
 				/*
 				if ( ++vcnt[lca] == 1 )
 					T.push(G[lca]);
@@ -415,12 +402,14 @@ int main() {
 			}
 		}
 		sort(queries.begin(),queries.end(),comparator());
-		for ( i = 0; i < (int)queries.size(); printf("%d\n",queries[i++].ans) ) ;
+		for ( i = 0; i < (int)queries.size(); /*printf("%d\n",queries[i++].ans)*/ ++i ) ;
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		ax += elapsed.count();
+		fprintf(fp,"n = %d, sigma = %d, time per query %.4lf\n",G.size(),G.get_sigma(),elapsed.count()/oqr);
+		delete T;
 	}
 	//printf("%lf\n",ax);
+	fclose(fp);
 	return 0;
 }
 

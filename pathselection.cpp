@@ -167,8 +167,10 @@ public:
 	}
 } *wt;
 
+int sigma;
+
 bool read_preprocess() {
-	int i,j,k,sigma;
+	int i,j,k;
 	if ( 2 != scanf("%d %d",&n,&sigma) )
 		return false ;
 	for ( K = 0; (1<<K) <= n; ++K ) ;
@@ -223,17 +225,20 @@ int median_query( int x, int y ) {
 	return wt->kth_weight(vec,len>>1);
 }
 
-int main() {
-	int i,j,qr;
+int main( int argc, char **argv ) {
+	int i,j,oqr,qr;
 	double ax = 0;
+	FILE *fp = fopen(argv[1],"w");
 	for (;read_preprocess();) {
 		auto start = std::chrono::high_resolution_clock::now();
-		for ( scanf("%d",&qr); qr-- && 2 == scanf("%d %d",&i,&j); printf("%d\n",median_query(i,j)) ) ;
+		for ( scanf("%d",&qr), oqr - qr; qr-- && 2 == scanf("%d %d",&i,&j); /*printf("%d\n",median_query(i,j))*/ median_query(i,j) ) ;
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		ax += elapsed.count();
+		//ax += elapsed.count();
+		fprintf(fp,"n = %d, sigma = %d, time per query %.4lf\n",n,sigma,elapsed.count()/oqr);
 	}
 	//printf("%lf\n",ax);
+	fclose(fp);
 	return 0;
 }
 
