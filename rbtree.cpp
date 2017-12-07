@@ -328,10 +328,10 @@ vector<st_query> queries;
 char vcnt[N];
 
 int main( int argc, char **argv ) {
-	int oqr,i,j,k,qr,t,left,right,x,y,nleft,nright,lca;
+	int oqr,i,j,k,qr,t,left,right,x,y,nleft,nright,lca,cs = 0;
 	double ax = 0;
 	FILE *fp = fopen(argv[1],"w");
-	for ( ;G.read_graph(); ) {
+	for ( ;G.read_graph() && ++cs; ) {
 		G.preprocess(s);
 		auto start = std::chrono::high_resolution_clock::now();
 		for ( B = 1; B <= s.size()/B; ++B ) ;
@@ -402,13 +402,15 @@ int main( int argc, char **argv ) {
 			}
 		}
 		sort(queries.begin(),queries.end(),comparator());
-		for ( i = 0; i < (int)queries.size(); /*printf("%d\n",queries[i++].ans)*/ ++i ) ;
+		for ( i = 0; i < (int)queries.size(); printf("%d\n",queries[i++].ans) ) ;
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		fprintf(fp,"n = %d, sigma = %d, time per query %.4lf\n",G.size(),G.get_sigma(),elapsed.count()/oqr);
+		ax += elapsed.count()/oqr;
+		fprintf(fp,"%.6lf\n",elapsed.count()/oqr);
 		delete T;
 	}
 	//printf("%lf\n",ax);
+	fprintf(fp,"%.6lf\n",ax/cs);
 	fclose(fp);
 	return 0;
 }

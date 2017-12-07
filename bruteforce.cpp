@@ -84,18 +84,21 @@ int query( int x, int y ) {
 }
 
 int main( int argc, char **argv ) {
-	int i,j,k,qr,oqr;
+	int i,j,k,qr,oqr,cs = 0;
 	double ax = 0;
 	FILE *fp = fopen(argv[1],"w");
-	for ( ;read_preprocess(); ) {
+	for ( ;read_preprocess() && ++cs; ) {
 		auto start = std::chrono::high_resolution_clock::now();
-		for ( scanf("%d",&qr), oqr = qr; qr-- && 2 == scanf("%d %d",&i,&j); /*printf("%d\n",query(i,j))*/ query(i,j) ) ;
+		for ( scanf("%d",&qr), oqr = qr; qr-- && 2 == scanf("%d %d",&i,&j); ) {
+			printf("%d\n",query(i,j));
+		}
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		//ax += elapsed.count();
-		fprintf(fp,"n = %d, sigma = %d, time per query %.4lf\n",n,sigma,elapsed.count()/oqr);
+		fprintf(fp,"%.6lf\n",elapsed.count()/oqr);
+		ax += elapsed.count()/oqr;
 	}
 	//printf("%lf\n",ax);
+	fprintf(fp,"%.6lf\n",ax/cs);
 	fclose(fp);
 	return 0;
 }

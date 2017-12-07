@@ -22,11 +22,11 @@ def link(x,y):
             rank[y] = rank[y]+1
 
 if __name__ == '__main__':
-    ts = 32
+    ts = 17
     n = 1000000
     for t in range(ts):
         parent,rank = {},{}
-        n = n+f(5000,10000)
+        # n = n+f(5000,10000)
         # n = f(50,80)
         # n = f(5,7)
         C = f(n,2*n)
