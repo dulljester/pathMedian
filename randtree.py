@@ -49,6 +49,7 @@ if __name__ == '__main__':
                 k = k+1
         if k != n-1:
             x = 1/0
+        """
         if n <= 100:
             qr = n*(n-1)/2
             print qr
@@ -64,3 +65,4 @@ if __name__ == '__main__':
                     if i != j:
                         break
                 print i,j
+        """
