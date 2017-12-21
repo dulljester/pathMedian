@@ -1,4 +1,4 @@
-import random
+import random,math
 
 def f( m, n ):
     return random.randint(m,n)
@@ -29,7 +29,8 @@ if __name__ == '__main__':
         # n = n+f(5000,10000)
         # n = f(50,80)
         # n = f(5,7)
-        C = f(n,2*n)
+        sqn = int(math.log(n)/math.log(2))
+        C = f(sqn,2*sqn)
         print n,C
         for i in range(n):
             print f(1,C),

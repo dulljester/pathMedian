@@ -20,6 +20,7 @@ typedef long long i64;
 #define N (1<<22)
 enum { UP, DOWN };
 #define oo (1LL<<60)
+#pragma comment(linker, "/STACK:16777216")
 
 int n,p[N],seen[N],yes,weight[N];
 vector<pair<int,int> > adj[N];
@@ -77,6 +78,7 @@ public:
 far_manager fm[N];
 
 void dfs( int x ) {
+	assert( 0 <= x && x < n );
 	assert( seen[x] != yes );
 	seen[x] = yes;
 	for ( int y,i = 0; i < (int)adj[x].size(); ++i )
@@ -147,9 +149,10 @@ int main() {
 		for ( vec.clear(), orig_e.clear(), i = 0; i < n; p[i] = -1, fm[i].init(i), adj[i++].clear() ) ;
 		for ( t = UP; t <= DOWN; ++t )
 			for ( i = 0; i < n; z[t][i++] = +oo ) ;
-		for ( i = 0; i < n; scanf("%d",&weight[i++]) ) ;
+		for ( i = 0; i < n; ++i ) 
+			assert( 1 == scanf("%d",&weight[i]) );
 		for ( k = 0; k < n-1; ++k ) {
-			scanf("%d %d",&i,&j);
+			assert( 2 == scanf("%d %d",&i,&j) );
 			assert( 0 <= i && i < n );
 			assert( 0 <= j && j < n );
 			adj[i].push_back(make_pair(j,1));
@@ -157,6 +160,8 @@ int main() {
 			orig_e.push_back(make_pair(i,j));
 		}
 		++yes, d[0] = 0, dfs(0);
+		for ( i = 0; i < n; ++i )
+			assert( seen[i] == yes );
 		for ( i = 0; i < n; calc_z(DOWN,i++) ) ;
 		for ( i = 0; i < n; ++i ) {
 			max(calc_z(UP,i),calc_z(DOWN,i));
