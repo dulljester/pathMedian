@@ -171,11 +171,11 @@ public:
 	int get_size() const { return n; }
 	~Tree() {
 		if ( !n || n == 1 ) return ;
-		if ( left ) delete left;
-		if ( right ) delete right;
 		free(ptr_left), free(ptr_right), free(d), free(weight);
 		for ( int i = 0; i < n; free(anc[i++]) ) ;
 		free(anc);
+		if ( left ) delete left;
+		if ( right ) delete right;
 	}
 } *T;
 

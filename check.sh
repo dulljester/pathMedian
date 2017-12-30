@@ -8,11 +8,11 @@ echo "Done with RB-Tree"
 echo "Done with HLD+Wavelet"
 /usr/bin/time -v ./b bf.csv < queries.txt > outb.txt 
 echo "Done with Bruteforce"
-diff outa.txt outb.txt
+cmp -s outa.txt outb.txt
 echo "A and B"
-diff outa.txt outc.txt
-echo "A and C"
+# diff outa.txt outc.txt
+# echo "A and C"
 /usr/bin/time -v ./extract he.csv < queries.txt > outd.txt 
 echo "Done with Extraction"
-diff outa.txt outd.txt
+cmp -s outa.txt outd.txt
 echo "A and D"
